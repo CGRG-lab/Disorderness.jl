@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.20
+# v0.12.21
 
 using Markdown
 using InteractiveUtils
@@ -25,7 +25,6 @@ begin
 	using Pkg
 	Pkg.activate(rootdir)
 	Pkg.instantiate();
-
 	using Plots
 	using PlutoUI
 	using DifferentialEquations
@@ -37,20 +36,30 @@ end
 # ╔═╡ 366389d0-68e3-11eb-19dd-d78bd237ab71
 PlutoUI.TableOfContents()
 
+# ╔═╡ b4359b10-7a26-11eb-151d-f95a6b998a79
+md"# CHECKPOINT
+
+read array slicing
+- https://discourse.julialang.org/t/trouble-understanding-slicing/36821/5
+read julia debugger (learn how to use @run and @enter)
+"
+
+# ╔═╡ fdcd11d0-7a8b-11eb-191b-316fdb08c3d9
+function circles(h,k,r)
+	# see this for more information: https://discourse.julialang.org/t/plot-a-circle-with-a-given-radius-with-plots-jl/23295/5
+theta = collect(range(0,2*π,length = 500));
+return h .+ r*sin.(theta), k .+ r*cos.(theta);
+end
+
 # ╔═╡ 7acb7db0-06ac-11eb-3218-b1d3fd2d72c7
 md"Particular solution using Euler method (Cyganowski, 2001)"
 
 # ╔═╡ 054caa20-795a-11eb-2eba-ddc9b516b4dc
 @bind frictiontype Radio(["Coulomb","viscous"], default = "Coulomb")
 
-# ╔═╡ 18ec5400-795e-11eb-1c9f-8fdbbe047125
-md"# CHECKPOINT
-- adding the option `dim` in one of the SDE.
-"
-
 # ╔═╡ f8fc0520-699d-11eb-0d45-5932beaa149f
 md"
-duration $(@bind totalTimePower Slider(0.1:0.5:3.5, default=0.5));
+duration $(@bind totalTimePower Slider(0.1:0.5:3.5, default=2));
 diffusion $(@bind D Slider(0.05:0.05:0.2, show_value = true,default=2));
 
 friction $(@bind F_C Slider(0.05:0.05:0.2, show_value = true,default=2));
@@ -131,6 +140,51 @@ $
 "
 end
 
+# ╔═╡ 92f12440-79c4-11eb-3878-eda56482eec0
+traceT = collect(range(1,step = dt,length = Nw));
+
+# ╔═╡ 72ddc3b0-79c0-11eb-0b19-19eb81a48e41
+let
+	include(joinpath(srcdir,"SDE.jl"))
+	titlefSz = 11;
+	drift_x(v) = -F_C*v+F_ext;
+	drift_y(v) = -F_C*v;
+	traceY = SDE(traceT, [drift_x, drift_y], D, Y0; dim=2);
+	absY = traceY[:,1].^2 .+ traceY[:,2].^2;
+	p1 = plot(traceT, traceY[:,1], xlabel = "", ylabel="v_x(t)", 
+		titlefontsize = titlefSz,
+		title="sample path (1D)\n in velocity space",legend = false);
+	p2 = plot(traceT, traceY[:,2], xlabel = "t",ylabel="v_y(t)",legend = false);
+	p3 = plot(traceY[:,1], traceY[:,2], seriestype=:path, # default: seriestype=:line
+		xlabel="v_x", ylabel="v_y", titlefontsize = titlefSz,
+		title="sample path (2D)\n in velocity space"); 
+	d = [0.0 0.0];
+	dts = fill(NaN,size(traceY))
+	for i = 1:length(traceT)
+		yi = traceY[i:i,:];
+		d = d + yi*dt; 
+		dts[i,:] = d;
+	end
+	p4 =plot(circles.(dts[:,1],dts[:,2],absY.*3), 
+		seriestype=:shape, c=:red, fillalpha = 0.05, lw = 0,
+		aspectratio = 1, titlefontsize = titlefSz, 
+		title = "sample path (2D)\n in space");
+## since there are too many circles, if specifying labels in the following way will be extremely time consuming.
+	# p4legend = fill("", length(absY)+1);
+	# p4legend[end-1:end] =  ["local slip magitude" "sample path in space"];
+	plot!(p4, dts[:,1],dts[:,2],seriestype=:path,xlabel="x",ylabel = "y",
+			legend = false);
+		  # label = p4legend)
+	lout1 = @layout [
+		            [p1
+			         p2] p3 p4
+		           ];
+	# lout2 = @layout [
+	# 	            grid(2,1) grid(1,1) grid(1,1)
+	# 	           ]; # both lout1 and lout2 gives almost the same result!
+	plot(p1,p2,p3,p4,layout = lout1, size=(700,300));
+end
+
 # ╔═╡ cf170040-e845-11ea-145d-f716ad472b84
 begin
 if frictiontype=="viscous"
@@ -145,28 +199,24 @@ elseif frictiontype=="Coulomb"
 end
 end
 
-# ╔═╡ cff1da70-e846-11ea-106f-9f72f2b84762
-begin
+# ╔═╡ fe09c7b0-e846-11ea-3458-3d72f807da89
+let
 	include(joinpath(srcdir,"SDE.jl"));
-	traceT = collect(range(1,step = dt,length = Nw))
 	traceY = SDE(traceT,drift,Float64(D),Y0);
 	predictat = totalTime;
 	ensembleY = SDE(dt,predictat,10000,drift,D,Y0); 
-end
-
-# ╔═╡ fe09c7b0-e846-11ea-3458-3d72f807da89
-let
+	
 	titlefSz = 11;
 	v = range(minimum(traceY),maximum(traceY),length=5000);
-	p1 = plot(traceT,traceY,xlabel = "t",ylabel= "v(t)");
+	p1 = Plots.plot(traceT,traceY,xlabel = "t",ylabel= "v(t)");
 	p2 = histogram(traceY,bins = 50,normalize=:pdf,xlabel = "v",ylabel= "v(t)");
 	plot!(p2,v,Pst(F_C,F_ext,D,v))
 	# :pdf, :density, :probability or :none
 	p3 = histogram(ensembleY, bins=50, normalize =:pdf, xlabel = "v", 
 		ylabel = "v(t)");
 	v2 = range(minimum(ensembleY),maximum(ensembleY),length=5000);
-	plot!(p3,v2,Pst(F_C,F_ext,D,v2));
-	plot(p1,p2,p3,layout = (1,3),legend= false,
+	Plots.plot!(p3,v2,Pst(F_C,F_ext,D,v2));
+	Plots.plot(p1,p2,p3,layout = (1,3),legend= false,
 	title = ["one sample path" "time averaged\n distribution" "ensemble averaged\n distribution"],titlefontsize=titlefSz, size = (700, 200))
 end
 
@@ -207,11 +257,13 @@ This equation comes from Eq. 6.19 from [here](http://physics.gu.se/~frtbm/joomla
 # ╔═╡ Cell order:
 # ╠═366389d0-68e3-11eb-19dd-d78bd237ab71
 # ╠═5b4cd610-68df-11eb-148b-8f94bd42f945
+# ╠═b4359b10-7a26-11eb-151d-f95a6b998a79
 # ╠═a3a0bfee-e845-11ea-004f-df9b39aade97
+# ╠═fdcd11d0-7a8b-11eb-191b-316fdb08c3d9
 # ╟─7acb7db0-06ac-11eb-3218-b1d3fd2d72c7
-# ╟─054caa20-795a-11eb-2eba-ddc9b516b4dc
-# ╠═18ec5400-795e-11eb-1c9f-8fdbbe047125
+# ╟─72ddc3b0-79c0-11eb-0b19-19eb81a48e41
 # ╟─fe09c7b0-e846-11ea-3458-3d72f807da89
+# ╟─054caa20-795a-11eb-2eba-ddc9b516b4dc
 # ╟─f8fc0520-699d-11eb-0d45-5932beaa149f
 # ╟─2cc390b2-69a0-11eb-2e8d-273d9dd6bee6
 # ╟─921c7722-06ad-11eb-380e-074417e055ed
@@ -226,10 +278,10 @@ This equation comes from Eq. 6.19 from [here](http://physics.gu.se/~frtbm/joomla
 # ╠═24030a60-06ad-11eb-1b35-6d49087b3ab1
 # ╠═a7306060-e455-11ea-0160-c781aeb2956e
 # ╠═f0b666c0-e843-11ea-1bde-450568599264
+# ╠═92f12440-79c4-11eb-3878-eda56482eec0
 # ╠═cf170040-e845-11ea-145d-f716ad472b84
 # ╠═f6cc0882-716e-11eb-3380-95579d37d720
 # ╠═454dfea0-716f-11eb-1736-a70c4949c21b
-# ╠═cff1da70-e846-11ea-106f-9f72f2b84762
 # ╠═464ce522-717c-11eb-2810-7b244052747d
 # ╠═4f235140-e84a-11ea-2bf7-438cfd72dae5
 # ╠═4bc12890-e84c-11ea-3cf4-85c3d9d481f0

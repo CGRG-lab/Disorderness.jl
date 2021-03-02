@@ -1,17 +1,23 @@
 # to get one realization
-function SDE(traceT,drift::Function,D,Y0; dim=1)
+function SDE(traceT,drift,D,Y0; dim=1)
 	b=sqrt(2*D);
     dts = diff(traceT);
     steps = length(dts);
     sigma=sqrt.(dts);  # variance=sigma^2
     dW = sigma.*randn((steps,dim)) .+ 0;
     
-    traceY = fill(NaN,(length(traceT),dim))
-    traceY[1] = Y0;
-    y = Y0;
-    for i = 2:length(traceT)
-        y = y + drift(y)*dts[i-1] + b*dW[i-1]
-        traceY[i] = y;
+    if dim == 1
+        drift = [drift];
+    end
+    traceY = fill(NaN,(length(traceT),dim));
+    traceY[1,:] .= Y0;
+    
+    for j = 1:dim 
+        y = Y0;
+        for i = 2:length(traceT)
+            y = y + drift[j](y)*dts[i-1] + b*dW[i-1, j]
+            traceY[i, j] = y;
+        end
     end
     return traceY
 end

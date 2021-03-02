@@ -1,3 +1,2 @@
- ["one sample path" 
-  "time averaged\n distribution" 
-  "ensemble averaged\n distribution"]
+
+absY = traceY[:,1].^2 .+ traceY[:,2].^2
