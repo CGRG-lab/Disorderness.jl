@@ -53,6 +53,9 @@ driving force $(@bind F_ext_to_F_C_ratio Slider(0:0.05:0.95, show_value = true,d
 datapoints $(@bind NwPower Slider(1:4, default=3,show_value = true))
 "
 
+# ╔═╡ 6bfa7a80-8018-11eb-2c0f-3b411d6291d4
+md"#### variables"
+
 # ╔═╡ f6cc0882-716e-11eb-3380-95579d37d720
 md"
 ### Numerically solving the Stochastic Differential Equation (SDE) using `DifferentialEquations.jl`
@@ -70,6 +73,9 @@ $v(t, W_t) = v_0 \exp{((\alpha-\frac{\beta^2}{2})t+\beta W_t)}$
 > see the [official example](https://diffeq.sciml.ai/stable/tutorials/sde_example/)
 
 "
+
+# ╔═╡ 06cd3970-801a-11eb-1065-49fad5c8ba21
+md"Run this session: $(@bind RunIt2 CheckBox(default=false))"
 
 # ╔═╡ 3b7d82e0-8012-11eb-2bea-fbcfebe6ffe4
 md"
@@ -104,16 +110,21 @@ md"### Common variables"
 begin
 	totalTime = Float64(10^totalTimePower);
 	Nw = Int64(floor(10^NwPower));
-	dt = Float64(totalTime/(Nw-1));
 	Y0 = 0.0;
 	F_ext = Float64(F_C*F_ext_to_F_C_ratio);
-	traceT = collect(range(1,step = dt,length = Nw));
 	titlefSz = 10;
+end
+
+# ╔═╡ 63564260-8018-11eb-058f-292b305207bc
+begin
+	dt = Float64(totalTime/(Nw-1));
+	traceT = collect(range(1,step = dt,length = Nw));
 end
 
 # ╔═╡ 72ddc3b0-79c0-11eb-0b19-19eb81a48e41
 let
 	include(joinpath(srcdir,"SDE.jl"))
+	include(joinpath(srcdir,"circles.jl"));
 	drift_x(v) = -F_C*v+F_ext;
 	drift_y(v) = -F_C*v;
 	traceY = SDE(traceT, [drift_x, drift_y], D, Y0; dim=2);
@@ -124,7 +135,7 @@ let
 	p2 = plot(traceT, traceY[:,2], xlabel = "t",ylabel="v_y(t)",legend = false);
 	p3 = plot(traceY[:,1], traceY[:,2], seriestype=:path, # default: seriestype=:line
 		xlabel="v_x", ylabel="v_y", titlefontsize = titlefSz,
-		title="sample path (2D)\n in velocity space"); 
+		title="sample path (2D)\n in velocity space",legend = false); 
 	d = [0.0 0.0];
 	dts = fill(NaN,size(traceY))
 	for i = 1:length(traceT)
@@ -191,7 +202,6 @@ end
 # ╔═╡ fe09c7b0-e846-11ea-3458-3d72f807da89
 let
 	include(joinpath(srcdir,"SDE.jl"));
-	include(joinpath(srcdir,"circles.jl"));
 	traceY = SDE(traceT,drift,Float64(D),Y0);
 	predictat = totalTime;
 	ensembleY = SDE(dt,predictat,10000,drift,D,Y0); 
@@ -210,14 +220,17 @@ let
 end
 
 # ╔═╡ 0d59e7b0-7e63-11eb-13d2-178ea4c4d09e
-begin 
+let 
 	# defining the problem
+	if RunIt2
 	u₀=0
+	dt2 = totalTime/40;
+	alg = SRIW1();# algorithm: EM(), SRIW1(), Tsit5(), etc...
 	f(u,p,t) = -F_C*sign(u)+F_ext;
 	g(u,p,t) = sqrt(2*D);
 	tspan = (0.0,totalTime)
 	prob = SDEProblem(f,g,u₀,tspan)
-	sol = solve(prob,SRIW1(),dt=dt)
+	sol = solve(prob,alg,dt=dt2)
 	
 	# single sample path
 	v = range(minimum(sol.u),maximum(sol.u),length=5000);
@@ -227,9 +240,9 @@ begin
 	# ensemble prediction
 	using DifferentialEquations.EnsembleAnalysis
 	ensembleprob = EnsembleProblem(prob);
-	solE = solve(ensembleprob,SRIW1(),EnsembleThreads();
-		trajectories=1000,dt=totalTime/100) # EM(),EnsembleThreads() is optional
-	# algorithm: EM(), SRIW1(), Tsit5(), etc...
+	solE = solve(ensembleprob,alg,EnsembleThreads();
+		trajectories=1000,dt=dt2) # EM(),EnsembleThreads() is optional
+	
 	ensum1 = EnsembleSummary(solE);
 	ensum2 = EnsembleSummary(solE, quantiles = [0.25, 0.75]);
 	p2 = plot(ensum1,labels = "middle 95%");
@@ -241,6 +254,7 @@ begin
 	v = range(minimum(ensembleu),maximum(ensembleu),length=5000);
 	plot!(p3, v,Pst(F_C,F_ext,D,v), labels = "FPE sol.")
 	plot(p1,p2,p3,layout = (1,3), size= (690,190), titlefontsize=titlefSz)
+	end
 
 end
 
@@ -264,14 +278,17 @@ md"
 # ╟─fe09c7b0-e846-11ea-3458-3d72f807da89
 # ╟─f8fc0520-699d-11eb-0d45-5932beaa149f
 # ╟─2cc390b2-69a0-11eb-2e8d-273d9dd6bee6
+# ╟─6bfa7a80-8018-11eb-2c0f-3b411d6291d4
+# ╠═63564260-8018-11eb-058f-292b305207bc
 # ╟─f6cc0882-716e-11eb-3380-95579d37d720
 # ╟─464ce522-717c-11eb-2810-7b244052747d
 # ╟─a50f5ac0-8009-11eb-2235-5d7e75f62a1f
-# ╟─0d59e7b0-7e63-11eb-13d2-178ea4c4d09e
+# ╟─06cd3970-801a-11eb-1065-49fad5c8ba21
+# ╠═0d59e7b0-7e63-11eb-13d2-178ea4c4d09e
 # ╟─3b7d82e0-8012-11eb-2bea-fbcfebe6ffe4
 # ╟─5e9c7290-8012-11eb-3191-79e66024157d
 # ╠═cf170040-e845-11ea-145d-f716ad472b84
 # ╟─6f1de950-8012-11eb-399a-432019e28e00
-# ╠═4ec09530-8013-11eb-2870-dd7421db7daa
+# ╟─4ec09530-8013-11eb-2870-dd7421db7daa
 # ╠═703d4ec0-f728-11ea-150b-e9e101b7acbd
 # ╠═6b13e4b0-8010-11eb-0826-f74b42b9c37a
