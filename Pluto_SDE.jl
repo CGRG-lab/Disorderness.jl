@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.21
+# v0.12.20
 
 using Markdown
 using InteractiveUtils
@@ -36,23 +36,8 @@ end
 # ╔═╡ 366389d0-68e3-11eb-19dd-d78bd237ab71
 PlutoUI.TableOfContents()
 
-# ╔═╡ b4359b10-7a26-11eb-151d-f95a6b998a79
-md"# CHECKPOINT
-
-read array slicing
-- https://discourse.julialang.org/t/trouble-understanding-slicing/36821/5
-read julia debugger (learn how to use @run and @enter)
-"
-
-# ╔═╡ fdcd11d0-7a8b-11eb-191b-316fdb08c3d9
-function circles(h,k,r)
-	# see this for more information: https://discourse.julialang.org/t/plot-a-circle-with-a-given-radius-with-plots-jl/23295/5
-theta = collect(range(0,2*π,length = 500));
-return h .+ r*sin.(theta), k .+ r*cos.(theta);
-end
-
 # ╔═╡ 7acb7db0-06ac-11eb-3218-b1d3fd2d72c7
-md"Particular solution using Euler method (Cyganowski, 2001)"
+md"### Particular solution using Euler method (Cyganowski, 2001)"
 
 # ╔═╡ 054caa20-795a-11eb-2eba-ddc9b516b4dc
 @bind frictiontype Radio(["Coulomb","viscous"], default = "Coulomb")
@@ -68,85 +53,67 @@ driving force $(@bind F_ext_to_F_C_ratio Slider(0:0.05:0.95, show_value = true,d
 datapoints $(@bind NwPower Slider(1:4, default=3,show_value = true))
 "
 
-# ╔═╡ 921c7722-06ad-11eb-380e-074417e055ed
-md"Particular solution using DifferentialEquation.jl"
+# ╔═╡ f6cc0882-716e-11eb-3380-95579d37d720
+md"
+### Numerically solving the Stochastic Differential Equation (SDE) using `DifferentialEquations.jl`
+"
 
-# ╔═╡ ceee2ff0-06ac-11eb-1d87-4b7dd46d71ad
-# begin
-# 	f(u,p,t) = -F_C*sign(u) + F_ext;
-# 	g(u,p,t) = sqrt(D);
-# 	tspan = (0.0,totalTime);
-# 	prob = SDEProblem(f,g,Y0,tspan);
-# 	sol = solve(prob,alg,dt=dt,adaptive=false);
-# 	p1 = plot(sol,xlabel="t",ylabel="v(t)");
-# 	v = range(minimum(sol.u), length=1000, stop=maximum(sol.u));
-# 	p2 = histogram(sol.u,bins = 50,normalize=:pdf,xlabel = "v",ylabel= "v(t)");
-# 	plot!(p2,v,Pst(F_C,F_ext,D,v));
-# 	plot(p1,p2,layout = (1,2),legend= false);
-# 	# or plotSDE(sol.t,sol.u,Pst,F_ext,F_C,D)
-# end
+# ╔═╡ 464ce522-717c-11eb-2810-7b244052747d
+md"
+For 
 
-# ╔═╡ dced9a40-06ad-11eb-0200-6790a3dee68e
-md"select the algorithm for solving the SDE problem:"
+$\mathrm{d}v = f(v) \mathrm{d}t + g(v) \mathrm{d}W$,
+we have the following solution if $f(v) = \alpha v$ and $g(v) = \beta v$
 
-# ╔═╡ b5500040-06ad-11eb-0799-cb644eb1589a
-@bind alg_str Select(["SRIW1","EM"])
+$v(t, W_t) = v_0 \exp{((\alpha-\frac{\beta^2}{2})t+\beta W_t)}$
 
-# ╔═╡ 24df4420-06ae-11eb-1416-bb77f494eaa2
-begin
-	algs_str = ["SRIW1","EM"];
-	algs = [SRIW1(),EM()];
-	LocB = indexin(algs_str,[alg_str]);
-	LocB[isnothing.(LocB)].=0;
-	Lia = LocB.!=0;
-	alg = algs[Lia][1]
-end
+> see the [official example](https://diffeq.sciml.ai/stable/tutorials/sde_example/)
+
+"
+
+# ╔═╡ 3b7d82e0-8012-11eb-2bea-fbcfebe6ffe4
+md"
+### Analytical solution
+"
+
+# ╔═╡ 5e9c7290-8012-11eb-3191-79e66024157d
+md"
+#### from Fokker-Planck equation (FPE)
+"
+
+# ╔═╡ 6f1de950-8012-11eb-399a-432019e28e00
+md"
+#### according to Ito calculus:
+
+For the Langevin equation
+
+$\frac{\mathrm{d}v(t)}{\mathrm{d}t} = -{\gamma}v(t) + \Gamma(t)$
+
+its solution is 
+
+$v(t) = \mathrm{e}^{-t/\tau_B}v(0) + \int_0^t \mathrm{e}^{-(t-s)/\tau_B}\sqrt{2D}\mathrm{d} W(s)$ 
+
+where $\tau_B \sim 1/\gamma$ is the relaxation of the particle velocity.
+> see Eq. 6.3, 6.5, 6.9 of [this](http://physics.gu.se/~frtbm/joomla/media/mydocs/LennartSjogren/kap6.pdf).
+"
+
+# ╔═╡ 4ec09530-8013-11eb-2870-dd7421db7daa
+md"### Common variables"
 
 # ╔═╡ 703d4ec0-f728-11ea-150b-e9e101b7acbd
-Nw = Int64(floor(10^NwPower));
-
-# ╔═╡ 24030a60-06ad-11eb-1b35-6d49087b3ab1
-Y0 = 0.0;
-
-# ╔═╡ a7306060-e455-11ea-0160-c781aeb2956e
-F_ext = Float64(F_C*F_ext_to_F_C_ratio);
-
-# ╔═╡ 14da7410-e457-11ea-2fa8-ef26a42c3ef5
-md"External force = $F_ext"
-
-# ╔═╡ f0b666c0-e843-11ea-1bde-450568599264
-totalTime = Float64(10^totalTimePower);
-
-# ╔═╡ 193acb80-e458-11ea-02df-2360eed46602
-md"duration of the sample path = $totalTime"
-
-# ╔═╡ 0619dd80-e844-11ea-3506-81aac6c830e2
-dt = Float64(totalTime/(Nw-1))
-
-# ╔═╡ 2cc390b2-69a0-11eb-2e8d-273d9dd6bee6
-# noted that the space after "$" is very important!
-let
-strT = @sprintf("%.2f",totalTime);
-strdt = @sprintf("%.2E",dt);
-md"
-$ 
-T = $strT;
-D = $D;
-F\_C = $(F_C); 
-F\_{ext} = $(F_ext);
-\text{datapoints} = $Nw; 
-\mathrm{d}t = $strdt
-$
-"
+begin
+	totalTime = Float64(10^totalTimePower);
+	Nw = Int64(floor(10^NwPower));
+	dt = Float64(totalTime/(Nw-1));
+	Y0 = 0.0;
+	F_ext = Float64(F_C*F_ext_to_F_C_ratio);
+	traceT = collect(range(1,step = dt,length = Nw));
+	titlefSz = 10;
 end
-
-# ╔═╡ 92f12440-79c4-11eb-3878-eda56482eec0
-traceT = collect(range(1,step = dt,length = Nw));
 
 # ╔═╡ 72ddc3b0-79c0-11eb-0b19-19eb81a48e41
 let
 	include(joinpath(srcdir,"SDE.jl"))
-	titlefSz = 11;
 	drift_x(v) = -F_C*v+F_ext;
 	drift_y(v) = -F_C*v;
 	traceY = SDE(traceT, [drift_x, drift_y], D, Y0; dim=2);
@@ -182,8 +149,30 @@ let
 	# lout2 = @layout [
 	# 	            grid(2,1) grid(1,1) grid(1,1)
 	# 	           ]; # both lout1 and lout2 gives almost the same result!
-	plot(p1,p2,p3,p4,layout = lout1, size=(700,300));
+	plot(p1,p2,p3,p4,layout = lout1, size=(690,250));
 end
+
+# ╔═╡ 2cc390b2-69a0-11eb-2e8d-273d9dd6bee6
+# noted that the space after "$" is very important!
+begin
+strT = @sprintf("%.2f",totalTime);
+strdt = @sprintf("%.2E",dt);
+md"
+$ 
+T = $strT;
+D = $D;
+F\_C = $(F_C); 
+F\_{ext} = $(F_ext);
+\text{datapoints} = $Nw; 
+\mathrm{d}t = $strdt
+$
+"
+end
+
+# ╔═╡ a50f5ac0-8009-11eb-2235-5d7e75f62a1f
+md"
+With the drift term $f(v)=-F_C|v|+F_\text{ext}$ and the diffusion $g(v) = \sqrt{2D}$, by  using `DifferentialEquations.jl` we can get one sample path (*left*), ensemble averaged sample paths (*middle*), and distribution of ensemble solutions at $t=$ $(strT) (*right*) as:
+"
 
 # ╔═╡ cf170040-e845-11ea-145d-f716ad472b84
 begin
@@ -202,86 +191,87 @@ end
 # ╔═╡ fe09c7b0-e846-11ea-3458-3d72f807da89
 let
 	include(joinpath(srcdir,"SDE.jl"));
+	include(joinpath(srcdir,"circles.jl"));
 	traceY = SDE(traceT,drift,Float64(D),Y0);
 	predictat = totalTime;
 	ensembleY = SDE(dt,predictat,10000,drift,D,Y0); 
-	
-	titlefSz = 11;
 	v = range(minimum(traceY),maximum(traceY),length=5000);
-	p1 = Plots.plot(traceT,traceY,xlabel = "t",ylabel= "v(t)");
-	p2 = histogram(traceY,bins = 50,normalize=:pdf,xlabel = "v",ylabel= "v(t)");
-	plot!(p2,v,Pst(F_C,F_ext,D,v))
+	p1 = plot(traceT,traceY,xlabel = "t",ylabel= "v(t)",legend= false);
+	p2 = histogram(traceY,bins = 50,normalize=:pdf,
+		xlabel = "v",ylabel= "P(t)", labels = "");
+	plot!(p2,v,Pst(F_C,F_ext,D,v),labels = "FPE sol.",legend=true);
 	# :pdf, :density, :probability or :none
 	p3 = histogram(ensembleY, bins=50, normalize =:pdf, xlabel = "v", 
-		ylabel = "v(t)");
+		ylabel = "P(t)", labels = "");
 	v2 = range(minimum(ensembleY),maximum(ensembleY),length=5000);
-	Plots.plot!(p3,v2,Pst(F_C,F_ext,D,v2));
-	Plots.plot(p1,p2,p3,layout = (1,3),legend= false,
-	title = ["one sample path" "time averaged\n distribution" "ensemble averaged\n distribution"],titlefontsize=titlefSz, size = (700, 200))
+	plot!(p3,v2,Pst(F_C,F_ext,D,v2),labels = "FPE sol.");
+	plot(p1,p2,p3,layout = (1,3),
+	title = ["one sample path" "time averaged\n distribution" "ensemble averaged\n distribution"],titlefontsize=titlefSz, size = (690, 190))
 end
 
-# ╔═╡ f6cc0882-716e-11eb-3380-95579d37d720
+# ╔═╡ 0d59e7b0-7e63-11eb-13d2-178ea4c4d09e
+begin 
+	# defining the problem
+	u₀=0
+	f(u,p,t) = -F_C*sign(u)+F_ext;
+	g(u,p,t) = sqrt(2*D);
+	tspan = (0.0,totalTime)
+	prob = SDEProblem(f,g,u₀,tspan)
+	sol = solve(prob,SRIW1(),dt=dt)
+	
+	# single sample path
+	v = range(minimum(sol.u),maximum(sol.u),length=5000);
+	p1 = plot(sol.t,sol.u,xlabel = "t",ylabel= "v(t)", 
+		title = "one sample path",legend = false);
+	
+	# ensemble prediction
+	using DifferentialEquations.EnsembleAnalysis
+	ensembleprob = EnsembleProblem(prob);
+	solE = solve(ensembleprob,SRIW1(),EnsembleThreads();
+		trajectories=1000,dt=totalTime/100) # EM(),EnsembleThreads() is optional
+	# algorithm: EM(), SRIW1(), Tsit5(), etc...
+	ensum1 = EnsembleSummary(solE);
+	ensum2 = EnsembleSummary(solE, quantiles = [0.25, 0.75]);
+	p2 = plot(ensum1,labels = "middle 95%");
+	plot!(p2, ensum2, title = "Ensemble summary", labels = "middle 50%",legend=true)
+	
+	ensembleu = map(x-> x.u[end],solE);
+	p3 = histogram(ensembleu, bins = 50, normalize = :pdf, 
+		xlabel = "v", ylabel = "P(v)",labels = "");
+	v = range(minimum(ensembleu),maximum(ensembleu),length=5000);
+	plot!(p3, v,Pst(F_C,F_ext,D,v), labels = "FPE sol.")
+	plot(p1,p2,p3,layout = (1,3), size= (690,190), titlefontsize=titlefSz)
+
+end
+
+# ╔═╡ 6b13e4b0-8010-11eb-0826-f74b42b9c37a
 md"
-### Numerically solving the Stochastic Differential Equation (SDE)
+# CHECKPOINT: 
+
+- check how to use multithreading [ref](https://diffeq.sciml.ai/stable/features/ensemble/#ensemble)
+
+- read julia debugger (learn how to use @run and @enter)
+
 "
-
-# ╔═╡ 454dfea0-716f-11eb-1736-a70c4949c21b
-L"
-\mathrm{d}v(t) = \text{drift}(t) + \sqrt{2D} \mathrm{d}W
-"
-
-# ╔═╡ 464ce522-717c-11eb-2810-7b244052747d
-md"
-See if 
-
-$v(t) = \mathrm{e}^{-t/\tau_B}v(0) + \frac{1}{m}\int_0^t \mathrm{e}^{-(t-s)/\tau_B}\mathrm{d} W(s)$ 
-
-increase the efficiency of calculating SDE.
-This equation comes from Eq. 6.19 from [here](http://physics.gu.se/~frtbm/joomla/media/mydocs/LennartSjogren/kap6.pdf).
-"
-
-# ╔═╡ 4f235140-e84a-11ea-2bf7-438cfd72dae5
-# function SDE2(F_C,F_ext,D,dt,totalTime)
-# 	u₀=0.5;
-# 	f(u,p,t) = -F_C*sign(u) + F_ext
-# 	g(u,p,t) = sqrt(D);
-# #	dt = 1//2^(4)
-# 	tspan = (0,totalTime)
-# 	prob = SDEProblem(f,g,u₀,tspan)
-# 	sol = solve(prob,EM(),dt=dt);
-# end
-
-# ╔═╡ 4bc12890-e84c-11ea-3cf4-85c3d9d481f0
-# sol = SDE2(F_C,F_ext,D,dt,totalTime);
 
 # ╔═╡ Cell order:
 # ╠═366389d0-68e3-11eb-19dd-d78bd237ab71
 # ╠═5b4cd610-68df-11eb-148b-8f94bd42f945
-# ╠═b4359b10-7a26-11eb-151d-f95a6b998a79
 # ╠═a3a0bfee-e845-11ea-004f-df9b39aade97
-# ╠═fdcd11d0-7a8b-11eb-191b-316fdb08c3d9
 # ╟─7acb7db0-06ac-11eb-3218-b1d3fd2d72c7
+# ╟─054caa20-795a-11eb-2eba-ddc9b516b4dc
 # ╟─72ddc3b0-79c0-11eb-0b19-19eb81a48e41
 # ╟─fe09c7b0-e846-11ea-3458-3d72f807da89
-# ╟─054caa20-795a-11eb-2eba-ddc9b516b4dc
 # ╟─f8fc0520-699d-11eb-0d45-5932beaa149f
 # ╟─2cc390b2-69a0-11eb-2e8d-273d9dd6bee6
-# ╟─921c7722-06ad-11eb-380e-074417e055ed
-# ╠═ceee2ff0-06ac-11eb-1d87-4b7dd46d71ad
-# ╟─dced9a40-06ad-11eb-0200-6790a3dee68e
-# ╟─b5500040-06ad-11eb-0799-cb644eb1589a
-# ╟─24df4420-06ae-11eb-1416-bb77f494eaa2
-# ╟─193acb80-e458-11ea-02df-2360eed46602
-# ╟─14da7410-e457-11ea-2fa8-ef26a42c3ef5
-# ╠═0619dd80-e844-11ea-3506-81aac6c830e2
-# ╠═703d4ec0-f728-11ea-150b-e9e101b7acbd
-# ╠═24030a60-06ad-11eb-1b35-6d49087b3ab1
-# ╠═a7306060-e455-11ea-0160-c781aeb2956e
-# ╠═f0b666c0-e843-11ea-1bde-450568599264
-# ╠═92f12440-79c4-11eb-3878-eda56482eec0
+# ╟─f6cc0882-716e-11eb-3380-95579d37d720
+# ╟─464ce522-717c-11eb-2810-7b244052747d
+# ╟─a50f5ac0-8009-11eb-2235-5d7e75f62a1f
+# ╟─0d59e7b0-7e63-11eb-13d2-178ea4c4d09e
+# ╟─3b7d82e0-8012-11eb-2bea-fbcfebe6ffe4
+# ╟─5e9c7290-8012-11eb-3191-79e66024157d
 # ╠═cf170040-e845-11ea-145d-f716ad472b84
-# ╠═f6cc0882-716e-11eb-3380-95579d37d720
-# ╠═454dfea0-716f-11eb-1736-a70c4949c21b
-# ╠═464ce522-717c-11eb-2810-7b244052747d
-# ╠═4f235140-e84a-11ea-2bf7-438cfd72dae5
-# ╠═4bc12890-e84c-11ea-3cf4-85c3d9d481f0
+# ╟─6f1de950-8012-11eb-399a-432019e28e00
+# ╠═4ec09530-8013-11eb-2870-dd7421db7daa
+# ╠═703d4ec0-f728-11ea-150b-e9e101b7acbd
+# ╠═6b13e4b0-8010-11eb-0826-f74b42b9c37a
