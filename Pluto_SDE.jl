@@ -25,6 +25,7 @@ begin
 	using Pkg
 	Pkg.activate(rootdir)
 	Pkg.instantiate();
+	using FFTW
 	using Plots
 	using PlutoUI
 	using DifferentialEquations
@@ -102,6 +103,48 @@ $v(t) = \mathrm{e}^{-t/\tau_B}v(0) + \int_0^t \mathrm{e}^{-(t-s)/\tau_B}\sqrt{2D
 where $\tau_B \sim 1/\gamma$ is the relaxation of the particle velocity.
 > see Eq. 6.3, 6.5, 6.9 of [this](http://physics.gu.se/~frtbm/joomla/media/mydocs/LennartSjogren/kap6.pdf).
 "
+
+# ╔═╡ e0acaee0-84c1-11eb-245b-4b0042d2642c
+md"### Spectral Analysis"
+
+# ╔═╡ f300c2c0-84c1-11eb-335f-816c1c15fe2a
+md"#### boxcar-shaped velocity history"
+
+# ╔═╡ d3de7090-84cb-11eb-1e8c-635d7db04e99
+@bind numcars Slider(1:5, show_value = true, default = 3)
+
+# ╔═╡ 1a829760-84c2-11eb-10d9-adc0e83b8a45
+let
+	include(joinpath(srcdir,"randboxcars.jl"));
+	x = collect(range(0,10,length = 5000));
+	ys = fill(0, (length(x),numcars))
+	ys = randboxcars(x, ys);
+	p_array = []; # or p_arr1 = Plots.Plot{Plots.GRBackend}[] to create an empty array of plot
+	for i = 1:numcars
+		p = plot(x,ys[:,i]);
+		push!(p_array, p);
+	end
+	p = plot(x, sum(ys,dims = 2));
+	push!(p_array, p);
+	subplotheights = fill(1,numcars+1);
+	subplotheights[end] = numcars;
+	subplotheights = subplotheights./sum(subplotheights); # normalize subplot heights
+	lout = grid(numcars+1,1, heights = subplotheights);
+	plot(p_array..., layout = lout, legend = false)
+end
+
+# ╔═╡ 80d83300-897a-11eb-369c-e7a5bfa489fa
+@bind numcars2 Slider(1:500, show_value = true, default = 50)
+
+# ╔═╡ 4e1ee580-84ca-11eb-2693-49048d8f1dd3
+let
+	include(joinpath(srcdir,"randboxcars.jl"));
+	x = collect(range(0,10,length = 5000));
+	ys = randboxcars(x, numcars2; boxwidthstd=0.1);
+	p1 = plot(x, ys);
+	p2 = plot(abs.(fft(ys)), xaxis=:log, yaxis=:log);
+	plot(p1,p2,layout = (1,2));
+end
 
 # ╔═╡ 4ec09530-8013-11eb-2870-dd7421db7daa
 md"### Common variables"
@@ -289,6 +332,12 @@ md"
 # ╟─5e9c7290-8012-11eb-3191-79e66024157d
 # ╠═cf170040-e845-11ea-145d-f716ad472b84
 # ╟─6f1de950-8012-11eb-399a-432019e28e00
+# ╟─e0acaee0-84c1-11eb-245b-4b0042d2642c
+# ╟─f300c2c0-84c1-11eb-335f-816c1c15fe2a
+# ╠═d3de7090-84cb-11eb-1e8c-635d7db04e99
+# ╠═1a829760-84c2-11eb-10d9-adc0e83b8a45
+# ╠═80d83300-897a-11eb-369c-e7a5bfa489fa
+# ╠═4e1ee580-84ca-11eb-2693-49048d8f1dd3
 # ╟─4ec09530-8013-11eb-2870-dd7421db7daa
 # ╠═703d4ec0-f728-11ea-150b-e9e101b7acbd
 # ╠═6b13e4b0-8010-11eb-0826-f74b42b9c37a
