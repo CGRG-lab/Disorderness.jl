@@ -124,7 +124,7 @@ let
 		p = plot(x,ys[:,i]);
 		push!(p_array, p);
 	end
-	p = plot(x, sum(ys,dims = 2));
+	p = plot(x, sum(ys,dims = 2),title="superposition of boxcars above");
 	push!(p_array, p);
 	subplotheights = fill(1,numcars+1);
 	subplotheights[end] = numcars;
@@ -141,9 +141,9 @@ let
 	include(joinpath(srcdir,"randboxcars.jl"));
 	x = collect(range(0,10,length = 5000));
 	ys = randboxcars(x, numcars2; boxwidthstd=0.1);
-	p1 = plot(x, ys);
-	p2 = plot(abs.(fft(ys)), xaxis=:log, yaxis=:log);
-	plot(p1,p2,layout = (1,2));
+	p1 = plot(x, ys, title="$numcars2 boxcars");
+	p2 = plot(abs.(fft(ys)), xaxis=:log, yaxis=:log, title="amplitude spectrum");
+	plot(p1,p2,layout = (1,2),size=(600,250), legends= false);
 end
 
 # ╔═╡ 4ec09530-8013-11eb-2870-dd7421db7daa
@@ -170,7 +170,7 @@ let
 	include(joinpath(srcdir,"circles.jl"));
 	drift_x(v) = -F_C*v+F_ext;
 	drift_y(v) = -F_C*v;
-	traceY = SDE(traceT, [drift_x, drift_y], D, Y0; dim=2);
+	traceY = SDE(traceT, [drift_x, drift_y], D, [Y0, Y0]);
 	absY = traceY[:,1].^2 .+ traceY[:,2].^2;
 	p1 = plot(traceT, traceY[:,1], xlabel = "", ylabel="v_x(t)", 
 		titlefontsize = titlefSz,
@@ -307,7 +307,13 @@ md"
 
 - check how to use multithreading [ref](https://diffeq.sciml.ai/stable/features/ensemble/#ensemble)
 
-- read julia debugger (learn how to use @run and @enter)
+- read julia debugger (learn how to use @run and @enter) [here it is](https://julialang.org/blog/2019/03/debuggers/)
+
+- see if there is a better way to pass the function `drift` or an array of drift functions (e.g. `[drift1, drift2]`) with assertion into the function `SDE.jl`.
+
+- 
+	- read it: https://stackoverflow.com/questions/63618640/type-of-function-in-julia
+	- https://stackoverflow.com/questions/46028069/how-do-i-specify-a-functions-type-signature-in-julia
 
 "
 
@@ -336,8 +342,8 @@ md"
 # ╟─f300c2c0-84c1-11eb-335f-816c1c15fe2a
 # ╠═d3de7090-84cb-11eb-1e8c-635d7db04e99
 # ╠═1a829760-84c2-11eb-10d9-adc0e83b8a45
-# ╠═80d83300-897a-11eb-369c-e7a5bfa489fa
-# ╠═4e1ee580-84ca-11eb-2693-49048d8f1dd3
+# ╟─80d83300-897a-11eb-369c-e7a5bfa489fa
+# ╟─4e1ee580-84ca-11eb-2693-49048d8f1dd3
 # ╟─4ec09530-8013-11eb-2870-dd7421db7daa
 # ╠═703d4ec0-f728-11ea-150b-e9e101b7acbd
 # ╠═6b13e4b0-8010-11eb-0826-f74b42b9c37a

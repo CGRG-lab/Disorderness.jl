@@ -3,7 +3,7 @@
 # x = collect(range(0,10,length = 100));	
 # ys = randboxcars(x, numcars)
 # boxwidthstd = 0.4 unit of x's length
-function randboxcars(x, numcars::Int; boxwidthstd = 0.4)
+function randboxcars(x::Array{T,1}, numcars::Int; boxwidthstd = 0.4) where {T} # 
 	halfwidthstd = boxwidthstd*0.5;
 	boxcentr = rand(x, numcars);
 	halfboxwidth = halfwidthstd .* (x[end]-x[1]) .* abs.(randn(numcars));
@@ -15,7 +15,7 @@ function randboxcars(x, numcars::Int; boxwidthstd = 0.4)
 	return ys
 end
 # number of rows of ys has to be the same as length(x).
-function randboxcars(x, ys::Array; boxwidthstd = 0.4)
+function randboxcars(x::Array{T,1}, ys::Array{N,2}; boxwidthstd = 0.4) where {T,N}
 	halfwidthstd = boxwidthstd*0.5;
 	numcars = size(ys, 2);
 	boxcentr = rand(x, numcars);

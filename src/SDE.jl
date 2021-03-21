@@ -1,19 +1,24 @@
 # to get one realization
-function SDE(traceT,drift,D,Y0; dim=1)
+
+function SDE(traceT::Array{T,1},drift,D::Union{Int64,Float64},Y0::Union{Int64,Float64,Array{T,1}}) where {T}
 	b=sqrt(2*D);
     dts = diff(traceT);
     steps = length(dts);
     sigma=sqrt.(dts);  # variance=sigma^2
+    dim = length(Y0);
     dW = sigma.*randn((steps,dim)) .+ 0;
-    
-    if dim == 1
+    if ~isa(Y0, Array)
+        Y0 = [Y0];
+    end
+    if ~isa(drift, Array)
         drift = [drift];
     end
+
     traceY = fill(NaN,(length(traceT),dim));
-    traceY[1,:] .= Y0;
+    traceY[1,:] = Y0;
     
     for j = 1:dim 
-        y = Y0;
+        y = Y0[j];
         for i = 2:length(traceT)
             y = y + drift[j](y)*dts[i-1] + b*dW[i-1, j]
             traceY[i, j] = y;
@@ -22,8 +27,12 @@ function SDE(traceT,drift,D,Y0; dim=1)
     return traceY
 end
 
-function SDE(traceT,drift::Function,D,Y0,numrealization)
-# NOT FINISHED YET
+function SDE(dt,drift::Function,energyFunc::Function,D,Y0)
+# CHECKPOINT:
+# 1. Create Union for ::Function and Array{Function,1}
+# 2. energyFunc is for the way calculating energy of an event.
+# 3. Try to make it compatible with 2D process
+
 	b=sqrt(2*D);
     dts = diff(traceT);
     steps = length(dts);
