@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.20
+# v0.14.0
 
 using Markdown
 using InteractiveUtils
@@ -32,6 +32,7 @@ begin
 	using Formatting
 	using LaTeXStrings
 	using Printf
+	using LsqFit
 end
 
 # ╔═╡ 366389d0-68e3-11eb-19dd-d78bd237ab71
@@ -137,13 +138,30 @@ end
 @bind numcars2 Slider(1:500, show_value = true, default = 50)
 
 # ╔═╡ 4e1ee580-84ca-11eb-2693-49048d8f1dd3
-let
+begin
 	include(joinpath(srcdir,"randboxcars.jl"));
 	x = collect(range(0,10,length = 5000));
-	ys = randboxcars(x, numcars2; boxwidthstd=0.1);
-	p1 = plot(x, ys, title="$numcars2 boxcars");
-	p2 = plot(abs.(fft(ys)), xaxis=:log, yaxis=:log, title="amplitude spectrum");
-	plot(p1,p2,layout = (1,2),size=(600,250), legends= false);
+	y = randboxcars(x, numcars2; boxwidthstd=0.1);
+	ptmp1 = plot(x, y, title="$numcars2 boxcars");
+	ydata = abs.(fft(y));
+	tdata = 1:length(ydata); # not correct
+	ptmp2 = plot(ydata, xaxis=:log, yaxis=:log, title="amplitude spectrum");
+	plot(ptmp1,ptmp2,layout = (1,2),size=(600,250), legends= false);
+end
+
+# ╔═╡ 79eaf800-8f80-11eb-29e1-21111fdf8e0f
+md"
+#### the $\omega^2$ model
+
+$S(\omega) = \frac{S(0)}{\sqrt{1+(\omega/\omega_c)^2}}$
+"
+
+# ╔═╡ d3d7e760-8f80-11eb-28b4-f308a644cf22
+let
+	omega2(w, p) = p[1]*(sqrt.(1 .+ (w/p[2]).^2)).^-1;
+	p0 = [1.0, 10000.0];
+	fit = curve_fit(omega2, tdata, ydata, p0);
+	# plot!(ptmp2,
 end
 
 # ╔═╡ 4ec09530-8013-11eb-2870-dd7421db7daa
@@ -341,9 +359,11 @@ md"
 # ╟─e0acaee0-84c1-11eb-245b-4b0042d2642c
 # ╟─f300c2c0-84c1-11eb-335f-816c1c15fe2a
 # ╠═d3de7090-84cb-11eb-1e8c-635d7db04e99
-# ╠═1a829760-84c2-11eb-10d9-adc0e83b8a45
+# ╟─1a829760-84c2-11eb-10d9-adc0e83b8a45
 # ╟─80d83300-897a-11eb-369c-e7a5bfa489fa
-# ╟─4e1ee580-84ca-11eb-2693-49048d8f1dd3
+# ╠═4e1ee580-84ca-11eb-2693-49048d8f1dd3
+# ╟─79eaf800-8f80-11eb-29e1-21111fdf8e0f
+# ╠═d3d7e760-8f80-11eb-28b4-f308a644cf22
 # ╟─4ec09530-8013-11eb-2870-dd7421db7daa
 # ╠═703d4ec0-f728-11ea-150b-e9e101b7acbd
 # ╠═6b13e4b0-8010-11eb-0826-f74b42b9c37a

@@ -13,6 +13,10 @@ function SDE(traceT::Array{T,1},drift,D::Union{Int64,Float64},Y0::Union{Int64,Fl
     if ~isa(drift, Array)
         drift = [drift];
     end
+    
+    if length(drift)!= dim
+        error("Number of `drift` function should be the same as the number of the initial condition `Y0`");
+    end
 
     traceY = fill(NaN,(length(traceT),dim));
     traceY[1,:] = Y0;
