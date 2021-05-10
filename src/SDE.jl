@@ -1,6 +1,6 @@
 # to get one realization
 
-function SDE(traceT::Array{T,1},drift,D::Union{Int64,Float64},Y0::Union{Int64,Float64,Array{T,1}}) where {T}
+function SDE(traceT::Array{Float64,1},drift,D::Union{Float64},Y0::Union{Float64,Array{Float64,1}})
 	b=sqrt(2*D);
     dts = diff(traceT);
     steps = length(dts);
